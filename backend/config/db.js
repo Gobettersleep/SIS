@@ -1,15 +1,17 @@
+require('dotenv').config();
 const mysql = require('mysql2');
 
-// 创建数据库连接池
 const pool = mysql.createPool({
-  host: 'localhost',
-  user: 'root',
-  password: 'df876790406',
-  database: 'college_info_system',
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
+  charset: process.env.DB_CHARSET || 'utf8mb4',
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0
 });
 
-// 导出连接池
+const connection = pool.promise();
+
 module.exports = pool;
