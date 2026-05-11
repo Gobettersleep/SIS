@@ -24,11 +24,15 @@ const startServer = async () => {
     const studentRoutes = require('./routes/students');
     const courseRoutes = require('./routes/courses');
     const gradeRoutes = require('./routes/grades');
+    const teacherRoutes = require('./routes/teachers');
+    const classRoutes = require('./routes/classes');
 
     app.use('/api/auth', authRoutes);
     app.use('/api/students', studentRoutes);
     app.use('/api/courses', courseRoutes);
     app.use('/api/grades', gradeRoutes);
+    app.use('/api/teachers', teacherRoutes);
+    app.use('/api/classes', classRoutes);
 
     app.get('/', (req, res) => {
       res.send('大学生信息系统后端API');

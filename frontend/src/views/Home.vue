@@ -77,7 +77,7 @@ const features = [
   { path: '/students', iconBg: 'rgba(45, 90, 123, 0.1)', title: '学生管理', description: '记录和管理学生档案，包括基本信息、学籍状态和联系方式，一目了然。' },
   { path: '/courses', iconBg: 'rgba(39, 174, 96, 0.1)', title: '课程管理', description: '维护课程目录，涵盖课程详情、教师分配和课时安排，灵活调整教学计划。' },
   { path: '/grades', iconBg: 'rgba(214, 137, 16, 0.1)', title: '成绩管理', description: '记录和分析学生学业表现，生成成绩单与统计概览，支持多维度评估。' },
-  { path: '/login', iconBg: 'rgba(192, 57, 43, 0.1)', title: '用户中心', description: '安全的身份认证与权限控制，个人资料管理，保障数据访问安全。' }
+  { path: '/teachers', iconBg: 'rgba(155, 89, 182, 0.1)', title: '教师管理', description: '管理教师档案与职称信息，为课程分配授课教师，维护教职员工数据。' }
 ]
 
 const isLoading = ref(true)
@@ -91,19 +91,18 @@ const stats = ref([
 const fetchStats = async () => {
   isLoading.value = true
   try {
-    const [studentsRes, coursesRes, gradesRes] = await Promise.allSettled([
-      get('/api/students').catch(() => []), get('/api/courses').catch(() => []), get('/api/grades').catch(() => [])
+    const [studentsRes, coursesRes, gradesRes, teachersRes] = await Promise.allSettled([
+      get('/api/students').catch(() => []), get('/api/courses').catch(() => []), get('/api/grades').catch(() => []), get('/api/teachers').catch(() => [])
     ])
     const students = Array.isArray(studentsRes.value) ? studentsRes.value : []
     const courses = Array.isArray(coursesRes.value) ? coursesRes.value : []
     const grades = Array.isArray(gradesRes.value) ? gradesRes.value : []
-    const teachers = new Set()
-    courses.forEach(c => { if (c.teacher) teachers.add(c.teacher) })
+    const teachers = Array.isArray(teachersRes.value) ? teachersRes.value : []
     stats.value = [
       { icon: 'students', iconBg: 'rgba(45, 90, 123, 0.1)', value: students.length, displayValue: students.length > 0 ? students.length.toLocaleString() : '-', unit: '人', label: '在校学生' },
       { icon: 'courses', iconBg: 'rgba(39, 174, 96, 0.1)', value: courses.length, displayValue: courses.length > 0 ? courses.length.toLocaleString() : '-', unit: '门', label: '开设课程' },
       { icon: 'grades', iconBg: 'rgba(214, 137, 16, 0.1)', value: grades.length, displayValue: grades.length > 0 ? grades.length.toLocaleString() : '-', unit: '条', label: '成绩记录' },
-      { icon: 'teachers', iconBg: 'rgba(155, 89, 182, 0.1)', value: teachers.size, displayValue: teachers.size > 0 ? teachers.size.toLocaleString() : '-', unit: '位', label: '教师团队' }
+      { icon: 'teachers', iconBg: 'rgba(155, 89, 182, 0.1)', value: teachers.length, displayValue: teachers.length > 0 ? teachers.length.toLocaleString() : '-', unit: '位', label: '教师团队' }
     ]
   } catch (err) { toast.error('加载统计数据失败') } finally { isLoading.value = false }
 }
