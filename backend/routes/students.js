@@ -1,106 +1,104 @@
 const express = require('express');
 const router = express.Router();
-const connection = require('../config/db');
+const { query } = require('../config/db');
 
-// 获取所有学生
-router.get('/', (req, res) => {
-  connection.query('SELECT * FROM students', (err, results) => {
-    if (err) {
-      console.error('获取学生列表失败:', err);
-      res.status(500).json({ error: '获取学生列表失败' });
-      return;
-    }
-    res.json(results);
-  });
+router.get('/', async (req, res) => {
+  try {
+    const results = await query('SELECT * FROM students');
+    const formattedResults = results.map(s => ({
+      ...s,
+      id: s.student_id,
+      name: s.student_name
+    }));
+    res.json(formattedResults);
+  } catch (err) {
+    console.error('获取学生列表失败:', err);
+    res.status(500).json({ error: '获取学生列表失败' });
+  }
 });
 
-// 根据ID获取学生
-router.get('/:id', (req, res) => {
+router.get('/:id', async (req, res) => {
   const { id } = req.params;
-  connection.query('SELECT * FROM students WHERE student_id = ?', [id], (err, results) => {
-    if (err) {
-      console.error('获取学生详情失败:', err);
-      res.status(500).json({ error: '获取学生详情失败' });
-      return;
-    }
+  try {
+    const results = await query('SELECT * FROM students WHERE student_id = ?', [id]);
     if (results.length === 0) {
       res.status(404).json({ error: '学生不存在' });
       return;
     }
-    res.json(results[0]);
-  });
+    const student = results[0];
+    res.json({ ...student, id: student.student_id, name: student.student_name });
+  } catch (err) {
+    console.error('获取学生详情失败:', err);
+    res.status(500).json({ error: '获取学生详情失败' });
+  }
 });
 
-// 添加学生
-router.post('/', (req, res) => {
-  const { student_id, student_name, gender, age, major, class_name, email, phone, address, enrollment_date, status } = req.body;
-  // 如果没有提供入学日期，使用当前日期
+router.post('/', async (req, res) => {
+  const { student_id, student_name, gender, age, major, class_name, email, phone, address, enrollment_date, status, id, name } = req.body;
+  
+  const sid = student_id || id;
+  const sname = student_name || name;
+  
+  if (!sid || !sname || !gender || !age || !major) {
+    return res.status(400).json({ error: '学号、姓名、性别、年龄、专业为必填项' });
+  }
+  
   const date = enrollment_date || new Date().toISOString().split('T')[0];
-  connection.query(
-    'INSERT INTO students (student_id, student_name, gender, age, major, class_name, email, phone, address, enrollment_date, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-    [student_id, student_name, gender, age, major, class_name, email, phone, address, date, status || '在校'],
-    (err, results) => {
-      if (err) {
-        console.error('添加学生失败:', err);
-        res.status(500).json({ error: '添加学生失败' });
-        return;
-      }
-      res.json({ message: '学生添加成功' });
+  try {
+    await query(
+      'INSERT INTO students (student_id, student_name, gender, age, major, class_name, email, phone, address, enrollment_date, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [sid, sname, gender, age, major, class_name || null, email || null, phone || null, address || null, date, status || '在校']
+    );
+    res.json({ message: '学生添加成功' });
+  } catch (err) {
+    console.error('添加学生失败:', err);
+    if (err.code === 'ER_DUP_ENTRY') {
+      res.status(400).json({ error: `学号 ${sid} 已存在，请使用其他学号` });
+    } else {
+      res.status(500).json({ error: '添加学生失败' });
     }
-  );
+  }
 });
 
-// 更新学生
-router.put('/:id', (req, res) => {
+router.put('/:id', async (req, res) => {
   const { id } = req.params;
-  const { student_name, gender, age, major, class_name, email, phone, address, status } = req.body;
-  connection.query(
-    'UPDATE students SET student_name = ?, gender = ?, age = ?, major = ?, class_name = ?, email = ?, phone = ?, address = ?, status = ? WHERE student_id = ?',
-    [student_name, gender, age, major, class_name, email, phone, address, status, id],
-    (err, results) => {
-      if (err) {
-        console.error('更新学生失败:', err);
-        res.status(500).json({ error: '更新学生失败' });
-        return;
-      }
-      if (results.affectedRows === 0) {
-        res.status(404).json({ error: '学生不存在' });
-        return;
-      }
-      res.json({ message: '学生更新成功' });
+  const { student_name, gender, age, major, class_name, email, phone, address, status, name } = req.body;
+  const sname = student_name || name;
+  try {
+    const results = await query(
+      'UPDATE students SET student_name = ?, gender = ?, age = ?, major = ?, class_name = ?, email = ?, phone = ?, address = ?, status = ? WHERE student_id = ?',
+      [sname, gender, age, major, class_name, email, phone, address, status, id]
+    );
+    if (results.affectedRows === 0) {
+      res.status(404).json({ error: '学生不存在' });
+      return;
     }
-  );
+    res.json({ message: '学生更新成功' });
+  } catch (err) {
+    console.error('更新学生失败:', err);
+    res.status(500).json({ error: '更新学生失败' });
+  }
 });
 
-// 删除学生（先删除关联的成绩记录）
-router.delete('/:id', (req, res) => {
+router.delete('/:id', async (req, res) => {
   const { id } = req.params;
   console.log(`[${new Date().toISOString()}] 收到删除学生请求, student_id: ${id}`);
   
-  // 先删除关联的成绩记录
-  connection.query('DELETE FROM grades WHERE student_id = ?', [id], (err) => {
-    if (err) {
-      console.error('删除学生成绩失败:', err);
-      res.status(500).json({ error: '删除学生失败' });
+  try {
+    await query('DELETE FROM grades WHERE student_id = ?', [id]);
+    
+    const results = await query('DELETE FROM students WHERE student_id = ?', [id]);
+    if (results.affectedRows === 0) {
+      console.log(`[${new Date().toISOString()}] 删除失败: 学生不存在, student_id: ${id}`);
+      res.status(404).json({ error: '学生不存在' });
       return;
     }
-    
-    // 再删除学生
-    connection.query('DELETE FROM students WHERE student_id = ?', [id], (err, results) => {
-      if (err) {
-        console.error('删除学生失败:', err);
-        res.status(500).json({ error: '删除学生失败' });
-        return;
-      }
-      if (results.affectedRows === 0) {
-        console.log(`[${new Date().toISOString()}] 删除失败: 学生不存在, student_id: ${id}`);
-        res.status(404).json({ error: '学生不存在' });
-        return;
-      }
-      console.log(`[${new Date().toISOString()}] 学生删除成功, student_id: ${id}`);
-      res.json({ message: '学生删除成功' });
-    });
-  });
+    console.log(`[${new Date().toISOString()}] 学生删除成功, student_id: ${id}`);
+    res.json({ message: '学生删除成功' });
+  } catch (err) {
+    console.error('删除学生失败:', err);
+    res.status(500).json({ error: '删除学生失败' });
+  }
 });
 
 module.exports = router;
