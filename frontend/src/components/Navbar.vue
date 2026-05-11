@@ -21,37 +21,86 @@
           <svg v-if="item.path === '/students'" class="nav-icon-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
           <svg v-else-if="item.path === '/courses'" class="nav-icon-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
           <svg v-else-if="item.path === '/grades'" class="nav-icon-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
+          <svg v-else-if="item.path === '/teachers'" class="nav-icon-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
           <span class="nav-text">{{ item.label }}</span>
         </router-link>
 
-        <router-link to="/login" class="nav-link nav-link--primary" :class="{ 'nav-link--active': $route.path === '/login' }" @click="isMenuOpen = false">
-          <svg class="nav-icon-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-          <span class="nav-text">登录</span>
-        </router-link>
+        <template v-if="isLoggedIn">
+          <div class="admin-badge">
+            <svg class="admin-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 1 0-16 0"/></svg>
+            <span class="admin-name">{{ userName }}</span>
+            <button class="logout-btn" @click="handleLogout" title="退出登录">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            </button>
+          </div>
+        </template>
+        <template v-else>
+          <router-link to="/login" class="nav-link nav-link--primary" :class="{ 'nav-link--active': $route.path === '/login' }" @click="isMenuOpen = false">
+            <svg class="nav-icon-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <span class="nav-text">登录</span>
+          </router-link>
+        </template>
       </div>
     </div>
   </nav>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { ref, watch, onMounted, onUnmounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 
 const route = useRoute()
+const router = useRouter()
 const isMenuOpen = ref(false)
 const isScrolled = ref(false)
 
 const navItems = [
   { path: '/students', label: '学生管理' },
   { path: '/courses', label: '课程管理' },
-  { path: '/grades', label: '成绩管理' }
+  { path: '/grades', label: '成绩管理' },
+  { path: '/teachers', label: '教师管理' }
 ]
+
+const refreshAuth = () => {
+  const token = localStorage.getItem('auth_token')
+  isLoggedIn.value = !!token
+  if (token) {
+    try {
+      const info = JSON.parse(localStorage.getItem('user_info') || '{}')
+      userName.value = info.realName || info.username || '用户'
+    } catch { userName.value = '用户' }
+  } else {
+    userName.value = ''
+  }
+}
+
+const isLoggedIn = ref(false)
+const userName = ref('')
+
+// 监听路由变化和 localStorage 变化
+watch(() => route.path, () => { refreshAuth() })
+window.addEventListener('storage', refreshAuth)
+
+const handleLogout = () => {
+  localStorage.removeItem('auth_token')
+  localStorage.removeItem('user_info')
+  isLoggedIn.value = false
+  userName.value = ''
+  isMenuOpen.value = false
+  router.push('/')
+}
 
 const handleScroll = () => { isScrolled.value = window.scrollY > 10 }
 const handleResize = () => { if (window.innerWidth > 768) isMenuOpen.value = false }
-const handleClickOutside = (event) => { const navbar = document.querySelector('.navbar'); if (navbar && !navbar.contains(event.target)) isMenuOpen.value = false }
+const handleClickOutside = (event) => {
+  const navbar = document.querySelector('.navbar')
+  if (navbar && !navbar.contains(event.target)) {
+    isMenuOpen.value = false
+  }
+}
 
 onMounted(() => {
+  refreshAuth()
   window.addEventListener('scroll', handleScroll, { passive: true })
   window.addEventListener('resize', handleResize)
   document.addEventListener('click', handleClickOutside)
@@ -60,6 +109,7 @@ onUnmounted(() => {
   window.removeEventListener('scroll', handleScroll)
   window.removeEventListener('resize', handleResize)
   document.removeEventListener('click', handleClickOutside)
+  window.removeEventListener('storage', refreshAuth)
 })
 </script>
 
@@ -85,6 +135,12 @@ onUnmounted(() => {
 .nav-link--primary.nav-link--active { background-color: var(--color-accent-hover); color: white; }
 .nav-link--primary.nav-link--active::after { display: none; }
 
+.admin-badge { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-4); background-color: var(--color-accent-light); border-radius: var(--radius-md); color: var(--color-accent); font-size: 0.875rem; font-weight: 500; }
+.admin-icon { flex-shrink: 0; }
+.admin-name { white-space: nowrap; }
+.logout-btn { display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; border: none; background: transparent; color: var(--color-text-muted); cursor: pointer; border-radius: var(--radius-sm); transition: all var(--transition-fast); margin-left: var(--space-1); padding: 0; min-height: auto; }
+.logout-btn:hover { color: var(--color-danger); background-color: rgba(192, 57, 43, 0.08); }
+
 .navbar-toggle { display: none; flex-direction: column; justify-content: center; align-items: center; width: 44px; height: 44px; padding: 0; background: none; border: none; cursor: pointer; gap: 5px; border-radius: var(--radius-md); transition: background-color var(--transition-fast); }
 .navbar-toggle:hover { background-color: var(--color-accent-light); }
 .toggle-bar { display: block; width: 22px; height: 2px; background-color: var(--color-text-primary); border-radius: 1px; transition: transform var(--transition-base), opacity var(--transition-base); }
@@ -100,6 +156,7 @@ onUnmounted(() => {
   .nav-link { width: 100%; justify-content: flex-start; padding: var(--space-3) var(--space-4); }
   .nav-link--primary { margin-left: 0; margin-top: var(--space-2); justify-content: center; }
   .nav-link--active::after { left: var(--space-4); transform: none; }
+  .admin-badge { width: 100%; justify-content: center; }
 }
 @media (max-width: 480px) { .navbar-container { padding: 0 var(--space-3); } .brand-text { font-size: 1rem; } .brand-logo { width: 24px; height: 24px; } }
 </style>

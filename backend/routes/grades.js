@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { query } = require('../config/db');
+const auth = require('../middleware/auth');
 
 router.get('/', async (req, res) => {
   try {
@@ -39,7 +40,7 @@ router.get('/student/:studentId', async (req, res) => {
   }
 });
 
-router.post('/', async (req, res) => {
+router.post('/', auth, async (req, res) => {
   const { student_id, student_name, course_id, course_name, score, score_level, remark, studentId, studentName, courseId, courseName } = req.body;
   const sid = student_id || studentId;
   const sname = student_name || studentName;
@@ -57,7 +58,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-router.put('/:id', async (req, res) => {
+router.put('/:id', auth, async (req, res) => {
   const { id } = req.params;
   const { score, score_level, remark } = req.body;
   try {
@@ -76,7 +77,7 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', auth, async (req, res) => {
   const { id } = req.params;
   try {
     const results = await query('DELETE FROM grades WHERE grade_id = ?', [id]);

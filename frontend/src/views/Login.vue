@@ -122,7 +122,12 @@ const handleLogin = async () => {
   isLoading.value = true
   try {
     const response = await post('/api/auth/login', { username: form.username, password: form.password })
-    if (response && response.token) localStorage.setItem('auth_token', response.token)
+    if (response && response.token) {
+      localStorage.setItem('auth_token', response.token)
+      if (response.user) {
+        localStorage.setItem('user_info', JSON.stringify(response.user))
+      }
+    }
     if (form.rememberMe) localStorage.setItem('remembered_username', form.username)
     else localStorage.removeItem('remembered_username')
     toast.success('登录成功，欢迎回来')

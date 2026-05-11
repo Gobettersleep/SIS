@@ -1,10 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const { query } = require('../config/db');
+const auth = require('../middleware/auth');
 
 router.get('/', async (req, res) => {
   try {
-    const results = await query('SELECT * FROM students');
+    const results = await query(
+      'SELECT s.*, c.class_name FROM students s LEFT JOIN classes c ON s.class_id = c.class_id'
+    );
     const formattedResults = results.map(s => ({
       ...s,
       id: s.student_id,
@@ -20,7 +23,9 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   const { id } = req.params;
   try {
-    const results = await query('SELECT * FROM students WHERE student_id = ?', [id]);
+    const results = await query(
+      'SELECT s.*, c.class_name FROM students s LEFT JOIN classes c ON s.class_id = c.class_id WHERE s.student_id = ?', [id]
+    );
     if (results.length === 0) {
       res.status(404).json({ error: '学生不存在' });
       return;
@@ -33,21 +38,21 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-router.post('/', async (req, res) => {
-  const { student_id, student_name, gender, age, major, class_name, email, phone, address, enrollment_date, status, id, name } = req.body;
-  
+router.post('/', auth, async (req, res) => {
+  const { student_id, student_name, gender, age, major, class_id, email, phone, address, enrollment_date, status, id, name } = req.body;
+
   const sid = student_id || id;
   const sname = student_name || name;
-  
+
   if (!sid || !sname || !gender || !age || !major) {
     return res.status(400).json({ error: '学号、姓名、性别、年龄、专业为必填项' });
   }
-  
+
   const date = enrollment_date || new Date().toISOString().split('T')[0];
   try {
     await query(
-      'INSERT INTO students (student_id, student_name, gender, age, major, class_name, email, phone, address, enrollment_date, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [sid, sname, gender, age, major, class_name || null, email || null, phone || null, address || null, date, status || '在校']
+      'INSERT INTO students (student_id, student_name, gender, age, major, class_id, email, phone, address, enrollment_date, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [sid, sname, gender, age, major, class_id || null, email || null, phone || null, address || null, date, status || '在校']
     );
     res.json({ message: '学生添加成功' });
   } catch (err) {
@@ -60,14 +65,14 @@ router.post('/', async (req, res) => {
   }
 });
 
-router.put('/:id', async (req, res) => {
+router.put('/:id', auth, async (req, res) => {
   const { id } = req.params;
-  const { student_name, gender, age, major, class_name, email, phone, address, status, name } = req.body;
+  const { student_name, gender, age, major, class_id, email, phone, address, status, name } = req.body;
   const sname = student_name || name;
   try {
     const results = await query(
-      'UPDATE students SET student_name = ?, gender = ?, age = ?, major = ?, class_name = ?, email = ?, phone = ?, address = ?, status = ? WHERE student_id = ?',
-      [sname, gender, age, major, class_name, email, phone, address, status, id]
+      'UPDATE students SET student_name = ?, gender = ?, age = ?, major = ?, class_id = ?, email = ?, phone = ?, address = ?, status = ? WHERE student_id = ?',
+      [sname, gender, age, major, class_id, email, phone, address, status, id]
     );
     if (results.affectedRows === 0) {
       res.status(404).json({ error: '学生不存在' });
@@ -80,13 +85,14 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', auth, async (req, res) => {
   const { id } = req.params;
   console.log(`[${new Date().toISOString()}] 收到删除学生请求, student_id: ${id}`);
-  
+
   try {
+    await query('DELETE FROM course_enrollments WHERE student_id = ?', [id]);
     await query('DELETE FROM grades WHERE student_id = ?', [id]);
-    
+
     const results = await query('DELETE FROM students WHERE student_id = ?', [id]);
     if (results.affectedRows === 0) {
       console.log(`[${new Date().toISOString()}] 删除失败: 学生不存在, student_id: ${id}`);

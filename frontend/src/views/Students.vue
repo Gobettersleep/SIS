@@ -29,6 +29,7 @@
           <th class="col-gender">性别</th>
           <th class="col-age" @click="sortBy('age')">年龄<span class="sort-icon" :class="getSortClass('age')">↕</span></th>
           <th class="col-major">专业</th>
+          <th class="col-class">班级</th>
           <th class="col-actions">操作</th>
         </tr></thead>
         <tbody>
@@ -38,6 +39,7 @@
             <td class="col-gender"><span class="gender-badge" :class="`gender-${student.gender}`">{{ student.gender }}</span></td>
             <td class="col-age">{{ student.age }} 岁</td>
             <td class="col-major"><span class="major-tag">{{ student.major }}</span></td>
+            <td class="col-class"><span class="class-tag">{{ student.class_name || '-' }}</span></td>
             <td class="col-actions"><div class="action-group">
               <button class="action-btn action-edit" @click="editStudent(student)" title="编辑"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
               <button class="action-btn action-delete" @click="confirmDelete(student)" title="删除"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
@@ -72,6 +74,12 @@
                 <div class="form-group" :class="{ 'form-group--error': formErrors.age }"><label class="form-label">年龄<span class="required">*</span></label><input type="number" v-model="form.age" placeholder="请输入年龄" min="15" max="50" @blur="validateField('age')" /><p v-if="formErrors.age" class="error-text">{{ formErrors.age }}</p></div>
               </div>
               <div class="form-group" :class="{ 'form-group--error': formErrors.major }"><label class="form-label">专业<span class="required">*</span></label><input type="text" v-model="form.major" placeholder="请输入专业名称" @blur="validateField('major')" /><p v-if="formErrors.major" class="error-text">{{ formErrors.major }}</p></div>
+              <div class="form-group"><label class="form-label">班级</label>
+                <select v-model="form.classId">
+                  <option value="">请选择班级</option>
+                  <option v-for="c in classes" :key="c.id" :value="c.id">{{ c.name }}</option>
+                </select>
+              </div>
               <div class="form-actions"><button type="button" class="btn-secondary" @click="closeForm">取消</button><button type="submit" class="btn-primary" :disabled="isSubmitting"><span v-if="isSubmitting" class="button-spinner"></span><span v-else>{{ isEditing ? '保存修改' : '确认添加' }}</span></button></div>
             </form>
           </div>
@@ -100,19 +108,21 @@ import { useToast } from '../composables/useToast.js'
 
 const toast = useToast()
 const students = ref([])
+const classes = ref([])
 const isLoading = ref(false); const isSubmitting = ref(false); const isDeleting = ref(false)
 const searchQuery = ref(''); const currentPage = ref(1); const pageSize = ref(5)
 const showForm = ref(false); const showDeleteConfirm = ref(false)
 const studentToDelete = ref(null); const isEditing = ref(false)
 const sortField = ref(''); const sortDirection = ref('asc')
-const form = reactive({ id: '', name: '', gender: '男', age: '', major: '' })
+const form = reactive({ id: '', name: '', gender: '男', age: '', major: '', classId: '' })
 const formErrors = reactive({ id: '', name: '', age: '', major: '' })
 
 const avatarColors = ['#2d5a7b', '#27ae60', '#d68910', '#c0392b', '#8e44ad', '#16a085']
 const getAvatarColor = (name) => { let hash = 0; for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash); return avatarColors[Math.abs(hash) % avatarColors.length] }
 
 const fetchStudents = async () => { isLoading.value = true; try { const data = await get('/api/students'); students.value = Array.isArray(data) ? data : [] } catch (err) { toast.error('加载学生数据失败'); students.value = [] } finally { isLoading.value = false } }
-onMounted(() => { fetchStudents() })
+const fetchClasses = async () => { try { const data = await get('/api/classes'); classes.value = Array.isArray(data) ? data : [] } catch (err) { classes.value = [] } }
+onMounted(() => { fetchStudents(); fetchClasses() })
 
 const filteredStudents = computed(() => {
   let result = students.value
@@ -127,8 +137,8 @@ watch([searchQuery, pageSize], () => { currentPage.value = 1 })
 
 const sortBy = (field) => { if (sortField.value === field) sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc'; else { sortField.value = field; sortDirection.value = 'asc' } }
 const getSortClass = (field) => { if (sortField.value !== field) return ''; return sortDirection.value === 'asc' ? 'sort-asc' : 'sort-desc' }
-const openAddForm = () => { isEditing.value = false; Object.assign(form, { id: '', name: '', gender: '男', age: '', major: '' }); Object.keys(formErrors).forEach(k => formErrors[k] = ''); showForm.value = true }
-const editStudent = (s) => { isEditing.value = true; Object.assign(form, { ...s }); showForm.value = true }
+const openAddForm = () => { isEditing.value = false; Object.assign(form, { id: '', name: '', gender: '男', age: '', major: '', classId: '' }); Object.keys(formErrors).forEach(k => formErrors[k] = ''); showForm.value = true }
+const editStudent = (s) => { isEditing.value = true; Object.assign(form, { ...s, classId: s.class_id || '' }); showForm.value = true }
 const closeForm = () => { showForm.value = false }
 const validateField = (field) => {
   if (field === 'id') { if (!form.id.trim()) formErrors.id = '学号不能为空'; else if (!/^\d+$/.test(form.id)) formErrors.id = '学号必须为数字'; else formErrors.id = '' }
@@ -136,7 +146,7 @@ const validateField = (field) => {
   if (field === 'age') { if (!form.age) formErrors.age = '年龄不能为空'; else if (form.age < 15 || form.age > 50) formErrors.age = '年龄应在15-50之间'; else formErrors.age = '' }
   if (field === 'major') { if (!form.major.trim()) formErrors.major = '专业不能为空'; else formErrors.major = '' }
 }
-const handleSubmit = async () => { ['id','name','age','major'].forEach(validateField); if (Object.values(formErrors).some(e => e)) { toast.error('请修正表单中的错误'); return }; isSubmitting.value = true; try { const data = { ...form, age: Number(form.age) }; if (isEditing.value) { await put(`/api/students/${form.id}`, data); toast.success('信息已更新') } else { await post('/api/students', data); toast.success('添加成功') }; await fetchStudents(); closeForm() } catch (err) { toast.error(err.message || '操作失败') } finally { isSubmitting.value = false } }
+const handleSubmit = async () => { ['id','name','age','major'].forEach(validateField); if (Object.values(formErrors).some(e => e)) { toast.error('请修正表单中的错误'); return }; isSubmitting.value = true; try { const data = { ...form, age: Number(form.age), class_id: form.classId || null }; if (isEditing.value) { await put(`/api/students/${form.id}`, data); toast.success('信息已更新') } else { await post('/api/students', data); toast.success('添加成功') }; await fetchStudents(); closeForm() } catch (err) { toast.error(err.message || '操作失败') } finally { isSubmitting.value = false } }
 const confirmDelete = (s) => { studentToDelete.value = s; showDeleteConfirm.value = true }
 const cancelDelete = () => { showDeleteConfirm.value = false; studentToDelete.value = null }
 const executeDelete = async () => { if (!studentToDelete.value) return; isDeleting.value = true; try { await del(`/api/students/${studentToDelete.value.id}`); toast.success('已删除'); await fetchStudents(); cancelDelete() } catch (err) { toast.error(err.message || '删除失败') } finally { isDeleting.value = false } }
@@ -173,6 +183,7 @@ const refreshData = async () => { await fetchStudents(); toast.success('数据�
 .gender-badge { display: inline-flex; padding: 2px 10px; border-radius: 100px; font-size: 0.8125rem; font-weight: 500; }
 .gender-男 { background-color: rgba(45, 90, 123, 0.1); color: var(--color-accent); } .gender-女 { background-color: rgba(214, 137, 16, 0.1); color: var(--color-warning); }
 .major-tag { font-size: 0.875rem; color: var(--color-text-secondary); }
+.class-tag { font-size: 0.8125rem; color: var(--color-text-secondary); background-color: var(--color-surface-raised); padding: 2px 8px; border-radius: var(--radius-sm); }
 .action-group { display: flex; gap: var(--space-1); }
 .action-btn { width: 32px; height: 32px; border-radius: var(--radius-sm); border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all var(--transition-fast); min-height: auto; min-width: auto; padding: 0; }
 .action-btn:hover { transform: scale(1.1); } .action-edit { background-color: var(--color-accent-light); color: var(--color-accent); } .action-edit:hover { background-color: var(--color-accent); color: white; }

@@ -57,6 +57,8 @@ const detectEntityType = (url) => {
   if (path === 'students') return 'students';
   if (path === 'courses') return 'courses';
   if (path === 'grades') return 'grades';
+  if (path === 'teachers') return 'teachers';
+  if (path === 'classes') return 'classes';
   return null;
 };
 
