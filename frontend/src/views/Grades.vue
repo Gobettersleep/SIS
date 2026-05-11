@@ -101,7 +101,7 @@ const { success: ts, error: te } = useToast()
 const grades = ref([])
 const isLoading = ref(false); const isSubmitting = ref(false); const isDeleting = ref(false)
 
-const fetchGrades = async () => { isLoading.value = true; try { const data = await get('/grades'); grades.value = Array.isArray(data) ? data : [] } catch (err) { te('加载成绩数据失败'); grades.value = [] } finally { isLoading.value = false } }
+const fetchGrades = async () => { isLoading.value = true; try { const data = await get('/api/grades'); grades.value = Array.isArray(data) ? data : [] } catch (err) { te('加载成绩数据失败'); grades.value = [] } finally { isLoading.value = false } }
 onMounted(() => { fetchGrades() })
 
 const stats = computed(() => { if (grades.value.length === 0) return { average: '-', highest: '-', lowest: '-' }; const scores = grades.value.map(g => Number(g.score)); const avg = (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1); return { average: avg, highest: Math.max(...scores), lowest: Math.min(...scores) } })
@@ -125,7 +125,7 @@ const getGradeLabel = (s) => { if (s >= 90) return '优秀'; if (s >= 80) return
 const getScoreClass = (s) => { if (s >= 90) return 'score-excellent'; if (s >= 80) return 'score-good'; if (s >= 70) return 'score-average'; if (s >= 60) return 'score-pass'; return 'score-fail' }
 const getScoreColor = (s) => { if (s >= 90) return '#059669'; if (s >= 80) return '#4a6fa5'; if (s >= 70) return '#d97706'; if (s >= 60) return '#dc2626'; return '#991b1b' }
 const studentColors = ['#4a6fa5', '#5a8f7b', '#c07a5a', '#8b6fae', '#5a9aa8', '#a85a6f']
-const getStudentColor = (n) => { let h = 0; for (let i = 0; i < n.length; i++) h = n.charCodeAt(i) + ((h << 5) - h); return studentColors[Math.abs(h) % studentColors.length] }
+const getStudentColor = (n) => { if (!n) return studentColors[0]; let h = 0; for (let i = 0; i < n.length; i++) h = n.charCodeAt(i) + ((h << 5) - h); return studentColors[Math.abs(h) % studentColors.length] }
 
 const showForm = ref(false); const isEditing = ref(false)
 const form = ref({ id: '', studentId: '', studentName: '', courseId: '', courseName: '', score: '' })
@@ -139,8 +139,8 @@ const validateForm = () => { ['studentId', 'studentName', 'courseId', 'courseNam
 const handleSubmit = async () => {
   if (!validateForm()) return; isSubmitting.value = true
   try {
-    if (isEditing.value) { await put(`/grades/${form.value.id}`, { ...form.value }); ts('成绩已更新') }
-    else { await post('/grades', { ...form.value }); ts('成绩添加成功') }
+    if (isEditing.value) { await put(`/api/grades/${form.value.id}`, { ...form.value }); ts('成绩已更新') }
+    else { await post('/api/grades', { ...form.value }); ts('成绩添加成功') }
     await fetchGrades(); closeForm()
   } catch (e) { te(e.message || '操作失败') } finally { isSubmitting.value = false }
 }
@@ -148,7 +148,7 @@ const handleSubmit = async () => {
 const showDeleteConfirm = ref(false); const gradeToDelete = ref(null)
 const confirmDelete = (g) => { gradeToDelete.value = g; showDeleteConfirm.value = true }
 const cancelDelete = () => { showDeleteConfirm.value = false; gradeToDelete.value = null }
-const executeDelete = async () => { if (!gradeToDelete.value) return; isDeleting.value = true; try { await del(`/grades/${gradeToDelete.value.id}`); ts('成绩记录已删除'); await fetchGrades(); cancelDelete() } catch (e) { te(e.message || '删除失败') } finally { isDeleting.value = false } }
+const executeDelete = async () => { if (!gradeToDelete.value) return; isDeleting.value = true; try { await del(`/api/grades/${gradeToDelete.value.id}`); ts('成绩记录已删除'); await fetchGrades(); cancelDelete() } catch (e) { te(e.message || '删除失败') } finally { isDeleting.value = false } }
 const refreshData = async () => { await fetchGrades(); ts('数据已刷新') }
 </script>
 

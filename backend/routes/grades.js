@@ -1,86 +1,94 @@
 const express = require('express');
 const router = express.Router();
-const connection = require('../config/db');
+const { query } = require('../config/db');
 
-// 获取所有成绩
-router.get('/', (req, res) => {
-  connection.query('SELECT * FROM grades', (err, results) => {
-    if (err) {
-      console.error('获取成绩列表失败:', err);
-      res.status(500).json({ error: '获取成绩列表失败' });
-      return;
-    }
-    res.json(results);
-  });
+router.get('/', async (req, res) => {
+  try {
+    const results = await query('SELECT * FROM grades');
+    const formattedResults = results.map(g => ({
+      ...g,
+      id: g.grade_id,
+      studentId: g.student_id,
+      studentName: g.student_name,
+      courseId: g.course_id,
+      courseName: g.course_name
+    }));
+    res.json(formattedResults);
+  } catch (err) {
+    console.error('获取成绩列表失败:', err);
+    res.status(500).json({ error: '获取成绩列表失败' });
+  }
 });
 
-// 根据学生ID获取成绩
-router.get('/student/:studentId', (req, res) => {
+router.get('/student/:studentId', async (req, res) => {
   const { studentId } = req.params;
-  connection.query('SELECT * FROM grades WHERE student_id = ?', [studentId], (err, results) => {
-    if (err) {
-      console.error('获取学生成绩失败:', err);
-      res.status(500).json({ error: '获取学生成绩失败' });
-      return;
-    }
-    res.json(results);
-  });
+  try {
+    const results = await query('SELECT * FROM grades WHERE student_id = ?', [studentId]);
+    const formattedResults = results.map(g => ({
+      ...g,
+      id: g.grade_id,
+      studentId: g.student_id,
+      studentName: g.student_name,
+      courseId: g.course_id,
+      courseName: g.course_name
+    }));
+    res.json(formattedResults);
+  } catch (err) {
+    console.error('获取学生成绩失败:', err);
+    res.status(500).json({ error: '获取学生成绩失败' });
+  }
 });
 
-// 添加成绩
-router.post('/', (req, res) => {
-  const { student_id, student_name, course_id, course_name, score, score_level, remark } = req.body;
-  connection.query(
-    'INSERT INTO grades (student_id, student_name, course_id, course_name, score, score_level, remark) VALUES (?, ?, ?, ?, ?, ?, ?)',
-    [student_id, student_name, course_id, course_name, score, score_level, remark],
-    (err, results) => {
-      if (err) {
-        console.error('添加成绩失败:', err);
-        res.status(500).json({ error: '添加成绩失败' });
-        return;
-      }
-      res.json({ message: '成绩添加成功' });
-    }
-  );
+router.post('/', async (req, res) => {
+  const { student_id, student_name, course_id, course_name, score, score_level, remark, studentId, studentName, courseId, courseName } = req.body;
+  const sid = student_id || studentId;
+  const sname = student_name || studentName;
+  const cid = course_id || courseId;
+  const cname = course_name || courseName;
+  try {
+    await query(
+      'INSERT INTO grades (student_id, student_name, course_id, course_name, score, score_level, remark) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [sid, sname, cid, cname, score, score_level, remark]
+    );
+    res.json({ message: '成绩添加成功' });
+  } catch (err) {
+    console.error('添加成绩失败:', err);
+    res.status(500).json({ error: '添加成绩失败' });
+  }
 });
 
-// 更新成绩
-router.put('/:id', (req, res) => {
+router.put('/:id', async (req, res) => {
   const { id } = req.params;
   const { score, score_level, remark } = req.body;
-  connection.query(
-    'UPDATE grades SET score = ?, score_level = ?, remark = ? WHERE grade_id = ?',
-    [score, score_level, remark, id],
-    (err, results) => {
-      if (err) {
-        console.error('更新成绩失败:', err);
-        res.status(500).json({ error: '更新成绩失败' });
-        return;
-      }
-      if (results.affectedRows === 0) {
-        res.status(404).json({ error: '成绩不存在' });
-        return;
-      }
-      res.json({ message: '成绩更新成功' });
-    }
-  );
-});
-
-// 删除成绩
-router.delete('/:id', (req, res) => {
-  const { id } = req.params;
-  connection.query('DELETE FROM grades WHERE grade_id = ?', [id], (err, results) => {
-    if (err) {
-      console.error('删除成绩失败:', err);
-      res.status(500).json({ error: '删除成绩失败' });
+  try {
+    const results = await query(
+      'UPDATE grades SET score = ?, score_level = ?, remark = ? WHERE grade_id = ?',
+      [score, score_level, remark, id]
+    );
+    if (results.affectedRows === 0) {
+      res.status(404).json({ error: '成绩不存在' });
       return;
     }
+    res.json({ message: '成绩更新成功' });
+  } catch (err) {
+    console.error('更新成绩失败:', err);
+    res.status(500).json({ error: '更新成绩失败' });
+  }
+});
+
+router.delete('/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const results = await query('DELETE FROM grades WHERE grade_id = ?', [id]);
     if (results.affectedRows === 0) {
       res.status(404).json({ error: '成绩不存在' });
       return;
     }
     res.json({ message: '成绩删除成功' });
-  });
+  } catch (err) {
+    console.error('删除成绩失败:', err);
+    res.status(500).json({ error: '删除成绩失败' });
+  }
 });
 
 module.exports = router;

@@ -92,13 +92,13 @@ const fetchStats = async () => {
   isLoading.value = true
   try {
     const [studentsRes, coursesRes, gradesRes] = await Promise.allSettled([
-      get('/students').catch(() => []), get('/courses').catch(() => []), get('/grades').catch(() => [])
+      get('/api/students').catch(() => []), get('/api/courses').catch(() => []), get('/api/grades').catch(() => [])
     ])
     const students = Array.isArray(studentsRes.value) ? studentsRes.value : []
     const courses = Array.isArray(coursesRes.value) ? coursesRes.value : []
     const grades = Array.isArray(gradesRes.value) ? gradesRes.value : []
     const teachers = new Set()
-    students.forEach(s => { if (s.teacher) teachers.add(s.teacher) })
+    courses.forEach(c => { if (c.teacher) teachers.add(c.teacher) })
     stats.value = [
       { icon: 'students', iconBg: 'rgba(45, 90, 123, 0.1)', value: students.length, displayValue: students.length > 0 ? students.length.toLocaleString() : '-', unit: '人', label: '在校学生' },
       { icon: 'courses', iconBg: 'rgba(39, 174, 96, 0.1)', value: courses.length, displayValue: courses.length > 0 ? courses.length.toLocaleString() : '-', unit: '门', label: '开设课程' },

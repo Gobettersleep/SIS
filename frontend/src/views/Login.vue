@@ -121,7 +121,7 @@ const handleLogin = async () => {
   if (errors.username || errors.password) { toast.error('请修正表单中的错误'); return }
   isLoading.value = true
   try {
-    const response = await post('/auth/login', { username: form.username, password: form.password })
+    const response = await post('/api/auth/login', { username: form.username, password: form.password })
     if (response && response.token) localStorage.setItem('auth_token', response.token)
     if (form.rememberMe) localStorage.setItem('remembered_username', form.username)
     else localStorage.removeItem('remembered_username')
@@ -135,7 +135,7 @@ const handleRegister = async () => {
   if (regErrors.username || regErrors.password || regErrors.confirmPassword) { toast.error('请修正表单中的错误'); return }
   isRegLoading.value = true
   try {
-    await post('/auth/register', { username: registerForm.username, password: registerForm.password })
+    await post('/api/auth/register', { username: registerForm.username, password: registerForm.password })
     toast.success('注册成功，请使用新账号登录')
     showRegister.value = false; registerForm.username = ''; registerForm.password = ''; registerForm.confirmPassword = ''
   } catch (err) { toast.error(err.message || '注册失败，请稍后重试') } finally { isRegLoading.value = false }
@@ -145,7 +145,7 @@ const handleForgotPassword = async () => {
   if (!forgotForm.username || !forgotForm.email) { toast.warning('请填写完整信息'); return }
   isForgotLoading.value = true
   try {
-    await post('/auth/forgot-password', { username: forgotForm.username, email: forgotForm.email })
+    await post('/api/auth/forgot-password', { username: forgotForm.username, email: forgotForm.email })
     toast.success('重置链接已发送至您的邮箱，请查收')
     showForgotPassword.value = false; forgotForm.username = ''; forgotForm.email = ''
   } catch (err) { toast.error(err.message || '发送失败，请检查邮箱地址') } finally { isForgotLoading.value = false }

@@ -122,7 +122,7 @@ const paginatedCourses = computed(() => { const s = (currentPage.value - 1) * pa
 const visiblePages = computed(() => { const p = [], mv = 5; let s = Math.max(1, currentPage.value - Math.floor(mv / 2)), e = Math.min(totalPages.value, s + mv - 1); if (e - s + 1 < mv) s = Math.max(1, e - mv + 1); for (let i = s; i <= e; i++) p.push(i); return p })
 watch([searchQuery, pageSize], () => { currentPage.value = 1 })
 
-const fetchCourses = async () => { isLoading.value = true; try { const d = await get('/courses'); courses.value = Array.isArray(d) ? d : [] } catch (err) { te('加载课程数据失败'); courses.value = [] } finally { isLoading.value = false } }
+const fetchCourses = async () => { isLoading.value = true; try { const d = await get('/api/courses'); courses.value = Array.isArray(d) ? d : [] } catch (err) { te('加载课程数据失败'); courses.value = [] } finally { isLoading.value = false } }
 onMounted(() => { fetchCourses() })
 
 const showForm = ref(false); const isEditing = ref(false)
@@ -133,13 +133,13 @@ const editCourse = (c) => { isEditing.value = true; form.value = { ...c }; formE
 const closeForm = () => { showForm.value = false; formErrors.value = {} }
 const validateField = (field) => { const v = String(form.value[field] || '').trim(); if (!v) { const lb = { id: '课程ID', name: '课程名称', credit: '学分', hours: '课时', teacher: '授课教师' }; formErrors.value[field] = `${lb[field]}不能为空` } else { delete formErrors.value[field] } }
 const validateForm = () => { ['id', 'name', 'credit', 'hours', 'teacher'].forEach(validateField); return Object.keys(formErrors.value).length === 0 }
-const handleSubmit = async () => { if (!validateForm()) return; isSubmitting.value = true; try { if (isEditing.value) { await put(`/courses/${form.value.id}`, { ...form.value }); ts(`课程「${form.value.name}」已更新`) } else { await post('/courses', { ...form.value }); ts(`课程「${form.value.name}」添加成功`) }; await fetchCourses(); closeForm() } catch (e) { te(e.message || '操作失败') } finally { isSubmitting.value = false } }
+const handleSubmit = async () => { if (!validateForm()) return; isSubmitting.value = true; try { if (isEditing.value) { await put(`/api/courses/${form.value.id}`, { ...form.value }); ts(`课程「${form.value.name}」已更新`) } else { await post('/api/courses', { ...form.value }); ts(`课程「${form.value.name}」添加成功`) }; await fetchCourses(); closeForm() } catch (e) { te(e.message || '操作失败') } finally { isSubmitting.value = false } }
 const showDeleteConfirm = ref(false); const courseToDelete = ref(null)
 const confirmDelete = (c) => { courseToDelete.value = c; showDeleteConfirm.value = true }
 const cancelDelete = () => { showDeleteConfirm.value = false; courseToDelete.value = null }
-const executeDelete = async () => { if (!courseToDelete.value) return; isDeleting.value = true; try { await del(`/courses/${courseToDelete.value.id}`); ts('已删除'); await fetchCourses(); cancelDelete() } catch (e) { te(e.message || '删除失败') } finally { isDeleting.value = false } }
+const executeDelete = async () => { if (!courseToDelete.value) return; isDeleting.value = true; try { await del(`/api/courses/${courseToDelete.value.id}`); ts('已删除'); await fetchCourses(); cancelDelete() } catch (e) { te(e.message || '删除失败') } finally { isDeleting.value = false } }
 const cssColors = ['#4a6fa5', '#5a8f7b', '#c07a5a', '#8b6fae', '#5a9aa8', '#a85a6f']
-const getCourseColor = (id) => { let h = 0; for (let i = 0; i < id.length; i++) h = id.charCodeAt(i) + ((h << 5) - h); return cssColors[Math.abs(h) % cssColors.length] }
+const getCourseColor = (id) => { if (!id) return cssColors[0]; let h = 0; for (let i = 0; i < id.length; i++) h = id.charCodeAt(i) + ((h << 5) - h); return cssColors[Math.abs(h) % cssColors.length] }
 </script>
 
 <style scoped>

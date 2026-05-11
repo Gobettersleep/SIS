@@ -111,7 +111,7 @@ const formErrors = reactive({ id: '', name: '', age: '', major: '' })
 const avatarColors = ['#2d5a7b', '#27ae60', '#d68910', '#c0392b', '#8e44ad', '#16a085']
 const getAvatarColor = (name) => { let hash = 0; for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash); return avatarColors[Math.abs(hash) % avatarColors.length] }
 
-const fetchStudents = async () => { isLoading.value = true; try { const data = await get('/students'); students.value = Array.isArray(data) ? data : [] } catch (err) { toast.error('加载学生数据失败'); students.value = [] } finally { isLoading.value = false } }
+const fetchStudents = async () => { isLoading.value = true; try { const data = await get('/api/students'); students.value = Array.isArray(data) ? data : [] } catch (err) { toast.error('加载学生数据失败'); students.value = [] } finally { isLoading.value = false } }
 onMounted(() => { fetchStudents() })
 
 const filteredStudents = computed(() => {
@@ -136,10 +136,10 @@ const validateField = (field) => {
   if (field === 'age') { if (!form.age) formErrors.age = '年龄不能为空'; else if (form.age < 15 || form.age > 50) formErrors.age = '年龄应在15-50之间'; else formErrors.age = '' }
   if (field === 'major') { if (!form.major.trim()) formErrors.major = '专业不能为空'; else formErrors.major = '' }
 }
-const handleSubmit = async () => { ['id','name','age','major'].forEach(validateField); if (Object.values(formErrors).some(e => e)) { toast.error('请修正表单中的错误'); return }; isSubmitting.value = true; try { if (isEditing.value) { await put(`/students/${form.id}`, { ...form }); toast.success('信息已更新') } else { await post('/students', { ...form }); toast.success('添加成功') }; await fetchStudents(); closeForm() } catch (err) { toast.error(err.message || '操作失败') } finally { isSubmitting.value = false } }
+const handleSubmit = async () => { ['id','name','age','major'].forEach(validateField); if (Object.values(formErrors).some(e => e)) { toast.error('请修正表单中的错误'); return }; isSubmitting.value = true; try { const data = { ...form, age: Number(form.age) }; if (isEditing.value) { await put(`/api/students/${form.id}`, data); toast.success('信息已更新') } else { await post('/api/students', data); toast.success('添加成功') }; await fetchStudents(); closeForm() } catch (err) { toast.error(err.message || '操作失败') } finally { isSubmitting.value = false } }
 const confirmDelete = (s) => { studentToDelete.value = s; showDeleteConfirm.value = true }
 const cancelDelete = () => { showDeleteConfirm.value = false; studentToDelete.value = null }
-const executeDelete = async () => { if (!studentToDelete.value) return; isDeleting.value = true; try { await del(`/students/${studentToDelete.value.id}`); toast.success('已删除'); await fetchStudents(); cancelDelete() } catch (err) { toast.error(err.message || '删除失败') } finally { isDeleting.value = false } }
+const executeDelete = async () => { if (!studentToDelete.value) return; isDeleting.value = true; try { await del(`/api/students/${studentToDelete.value.id}`); toast.success('已删除'); await fetchStudents(); cancelDelete() } catch (err) { toast.error(err.message || '删除失败') } finally { isDeleting.value = false } }
 const refreshData = async () => { await fetchStudents(); toast.success('数据已刷新') }
 </script>
 
