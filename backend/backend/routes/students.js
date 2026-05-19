@@ -68,11 +68,11 @@ router.post('/', auth, async (req, res) => {
 router.put('/:id', auth, async (req, res) => {
   const { id } = req.params;
   const { student_name, gender, age, major, class_id, email, phone, address, status, name } = req.body;
-  const sname = student_name || name;
+  const sname = student_name || name || null;
   try {
     const results = await query(
       'UPDATE students SET student_name = ?, gender = ?, age = ?, major = ?, class_id = ?, email = ?, phone = ?, address = ?, status = ? WHERE student_id = ?',
-      [sname, gender, age, major, class_id, email, phone, address, status, id]
+      [sname, gender || null, age || null, major || null, class_id || null, email || null, phone || null, address || null, status || null, id]
     );
     if (results.affectedRows === 0) {
       res.status(404).json({ error: '学生不存在' });

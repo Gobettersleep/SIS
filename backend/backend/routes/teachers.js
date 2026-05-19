@@ -62,11 +62,11 @@ router.post('/', auth, async (req, res) => {
 router.put('/:id', auth, async (req, res) => {
   const { id } = req.params;
   const { teacher_name, gender, title, department, email, phone, status, name } = req.body;
-  const tname = teacher_name || name;
+  const tname = teacher_name || name || null;
   try {
     const results = await query(
       'UPDATE teachers SET teacher_name = ?, gender = ?, title = ?, department = ?, email = ?, phone = ?, status = ? WHERE teacher_id = ?',
-      [tname, gender, title, department, email, phone, status, id]
+      [tname, gender || null, title || null, department || null, email || null, phone || null, status || null, id]
     );
     if (results.affectedRows === 0) {
       res.status(404).json({ error: '教师不存在' });
