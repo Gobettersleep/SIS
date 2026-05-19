@@ -31,6 +31,7 @@ const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 const friendlyError = (error) => {
   if (error.isAxiosError && !error.response) return '网络连接失败，请检查网络后重试';
   const status = error.response?.status;
+  if (status === 400) return error.response?.data?.message || '请求参数错误，请检查输入后重试';
   if (status === 401) return '登录已过期，请重新登录';
   if (status === 403) return '没有权限执行此操作';
   if (status === 404) return '请求的资源不存在';
@@ -53,7 +54,8 @@ const retryRequest = async (config, retryCount = 0) => {
 };
 
 const detectEntityType = (url) => {
-  const path = url.replace(/^\//, '').split('/')[0];
+  const cleanUrl = url.replace(/^\/api\//, '').replace(/^\//, '');
+  const path = cleanUrl.split('/')[0];
   if (path === 'students') return 'students';
   if (path === 'courses') return 'courses';
   if (path === 'grades') return 'grades';

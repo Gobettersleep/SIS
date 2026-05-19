@@ -43,13 +43,13 @@ router.get('/:id', async (req, res) => {
 
 router.post('/', auth, async (req, res) => {
   const { course_id, course_name, credit, hours, teacher_id, teacher_name, department, semester, max_students, current_students, status, id, name, teacher } = req.body;
-  const cid = course_id || id;
-  const cname = course_name || name;
+  const cid = course_id || id || null;
+  const cname = course_name || name || null;
   const tid = teacher_id || null;
   try {
     await query(
       'INSERT INTO courses (course_id, course_name, credit, hours, teacher_id, department, semester, max_students, current_students, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [cid, cname, credit, hours, tid, department, semester, max_students || 60, current_students || 0, status || '正常']
+      [cid, cname, credit || null, hours || null, tid, department || null, semester || null, max_students || 60, current_students || 0, status || '正常']
     );
     res.json({ message: '课程添加成功' });
   } catch (err) {
@@ -68,7 +68,7 @@ router.put('/:id', auth, async (req, res) => {
   try {
     const results = await query(
       'UPDATE courses SET course_name = ?, credit = ?, hours = ?, teacher_id = ?, department = ?, semester = ?, max_students = ?, current_students = ?, status = ? WHERE course_id = ?',
-      [course_name, credit, hours, teacher_id, department, semester, max_students, current_students, status, id]
+      [course_name || null, credit || null, hours || null, teacher_id || null, department || null, semester || null, max_students || null, current_students || null, status || null, id]
     );
     if (results.affectedRows === 0) {
       res.status(404).json({ error: '课程不存在' });
