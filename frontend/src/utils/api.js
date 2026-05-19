@@ -41,7 +41,7 @@ const friendlyError = (error) => {
 
 const retryRequest = async (config, retryCount = 0) => {
   try {
-    const response = await axios(config);
+    const response = await apiClient(config);
     return { success: true, data: response.data };
   } catch (error) {
     if (retryCount < MAX_RETRIES && axios.isAxiosError(error) && !error.response) {
@@ -63,7 +63,7 @@ const detectEntityType = (url) => {
 };
 
 const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
+  baseURL: import.meta.env.VITE_API_BASE_URL || '',
   timeout: REQUEST_TIMEOUT,
   headers: { 'Content-Type': 'application/json' }
 });
